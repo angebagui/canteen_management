@@ -44,6 +44,9 @@ dependencies {
 
     compile "io.vertx:vertx-core:$vertx_version"
     compile "io.vertx:vertx-web:$vertx_version"
+    compile "io.vertx:vertx-jdbc-client:$vertx_version"
+
+    compile 'mysql:mysql-connector-java:6.0.5'
 
     compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
     compile "org.jetbrains.kotlin:kotlin-runtime:$kotlin_version"
