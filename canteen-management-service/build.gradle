@@ -1,28 +1,53 @@
 buildscript {
-    ext.kotlin_version = '1.2.30'
+    ext{
+        kotlin_version = '1.2.30'
+        vertx_version = '3.5.1'
+    }
 
     repositories {
         mavenCentral()
+        jcenter()
     }
     dependencies {
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
     }
 }
 
+plugins {
+    id 'java'
+    id 'application'
+    id 'com.github.johnrengelman.shadow' version '1.2.3'
+}
+
 group 'org.ayiyikoh'
 version '1.0-SNAPSHOT'
 
-apply plugin: 'java'
+
+
 apply plugin: 'kotlin'
 
 sourceCompatibility = 1.8
 
+
+mainClassName = 'io.vertx.core.Launcher'
+def mainVerticleName = 'io.vertx.example.MainVerticle'
+
 repositories {
     mavenCentral()
+    jcenter()
+    maven {
+        url "https://oss.sonatype.org/content/repositories/3963/"
+    }
 }
 
 dependencies {
-    compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
+
+    compile "io.vertx:vertx-core:$vertx_version"
+    compile "io.vertx:vertx-web:$vertx_version"
+
+    compile "org.jetbrains.kotlin:kotlin-stdlib-jre8:$kotlin_version"
+    compile "org.jetbrains.kotlin:kotlin-runtime:$kotlin_version"
+
     testCompile group: 'junit', name: 'junit', version: '4.12'
 }
 
@@ -31,4 +56,35 @@ compileKotlin {
 }
 compileTestKotlin {
     kotlinOptions.jvmTarget = "1.8"
+}
+
+// Redeploy watcher.
+run {
+    args = ['run', mainVerticleName,
+            "--launcher-class=$mainClassName",
+            "--redeploy=src/**/*.*",
+            "--on-redeploy=./gradlew classes"
+    ]
+}
+
+// Naming and packaging settings for the "shadow jar".
+shadowJar {
+    baseName = 'app'
+    classifier = 'shadow'
+
+    manifest {
+        attributes 'Main-Verticle': mainVerticleName
+    }
+    mergeServiceFiles {
+        include 'META-INF/services/io.vertx.core.spi.VerticleFactory'
+    }
+}
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '2.13'
+}
+
+// Heroku relies on the 'stage' task to deploy.
+task stage {
+    dependsOn shadowJar
 }
