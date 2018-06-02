@@ -1,1 +1,1 @@
-# canteen_management
+# Canteen Management
