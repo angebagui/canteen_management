@@ -13,6 +13,7 @@ import io.vertx.ext.jdbc.JDBCClient
 import org.ayiyikoh.model.User
 import org.ayiyikoh.service.UserService
 import org.ayiyikoh.service.impl.UserServiceImpl
+import org.ayiyikoh.util.encrypt
 
 class MainVerticle: AbstractVerticle() {
 
@@ -110,7 +111,7 @@ class MainVerticle: AbstractVerticle() {
         }
 
 
-        val user =  User(-1,name, phone, email,password,roleCode)
+        val user =  User(-1,name, phone, email,password.encrypt(),roleCode)
 
         // Save user in database
         userService.createAsync(user,{userSavedJson->
