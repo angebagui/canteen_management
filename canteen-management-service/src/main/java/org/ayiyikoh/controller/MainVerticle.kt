@@ -16,10 +16,12 @@ import org.ayiyikoh.service.impl.UserServiceImpl
 
 class MainVerticle: AbstractVerticle() {
 
-    private val userService: UserService = UserServiceImpl(vertx,createJdbcConfig())
+    private lateinit var userService: UserService
 
     override fun start(startFuture: Future<Void>) {
         super.start(startFuture)
+
+        userService = UserServiceImpl(vertx,createJdbcConfig())
 
         //Create the different routes
         val router = createRouter()
@@ -145,7 +147,7 @@ class MainVerticle: AbstractVerticle() {
         val result = JsonObject()
         result.put("success", true)
         result.put("message", message)
-        result.put("data", Json.encode(data))
+        result.put("data", data)
         this.response().setStatusCode(200).putHeader("Content-Type", "application/json; charset=utf-8").end(result.encodePrettily())
     }
 
