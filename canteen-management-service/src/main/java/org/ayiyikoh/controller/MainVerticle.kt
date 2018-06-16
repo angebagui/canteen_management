@@ -11,14 +11,17 @@ import io.vertx.ext.web.RoutingContext
 import io.vertx.ext.web.handler.BodyHandler
 import io.vertx.ext.jdbc.JDBCClient
 import org.ayiyikoh.model.User
+import org.ayiyikoh.service.UserService
+import org.ayiyikoh.service.impl.UserServiceImpl
 
 class MainVerticle: AbstractVerticle() {
+
+    private val userService: UserService = UserServiceImpl(vertx,createJdbcConfig())
 
     override fun start(startFuture: Future<Void>) {
         super.start(startFuture)
 
-
-
+        //Create the different routes
         val router = createRouter()
 
         vertx.createHttpServer()
@@ -37,6 +40,7 @@ class MainVerticle: AbstractVerticle() {
 
 
     private fun createRouter() = Router.router(vertx).apply {
+
 
 
         // body handler
@@ -58,7 +62,7 @@ class MainVerticle: AbstractVerticle() {
 
     }
 
-    // Handlers
+    // Handlers: Actions
 
     val index = Handler<RoutingContext> { req ->
         req.response().end("<h1>Welcome!</h1>")
@@ -75,6 +79,7 @@ class MainVerticle: AbstractVerticle() {
      * params: name, phone, email, role_code
      */
     fun registerUser() = Handler<RoutingContext>{
+
         val name = it.request().getParam("name")
         val phone = it.request().getParam("phone")
         val email = it.request().getParam("email")
@@ -86,54 +91,36 @@ class MainVerticle: AbstractVerticle() {
             it.sendError("Name is not available")
         }
 
+        if(phone.isNullOrEmpty()){
+            it.sendError("phone is not available")
+        }
+
+        if(email.isNullOrEmpty()){
+            it.sendError("email is not available")
+        }
+
+        if(roleCode.isNullOrEmpty()){
+            it.sendError("roleCode is not available")
+        }
+
+        if(password.isNullOrEmpty()){
+            it.sendError("password is not available")
+        }
+
 
         val user =  User(-1,name, phone, email,password,roleCode)
 
         // Save user in database
-        val config = createJdbcConfig()
-        var client = JDBCClient.createShared(vertx, config)
-
-        client.getConnection({ res ->
-            if (res.succeeded()) {
-
-                var connection = res.result()
-
-                val params  = JsonArray()
-                params.add(name)
-                params.add(phone)
-                params.add(email)
-                params.add(password)
-                params.add(roleCode)
-
-                connection.queryWithParams("INSERT INTO users (name,phone, email, password, role_code) VALUES(?,?,?,?,?)", params, { res2 ->
-                    if (res2.succeeded()) {
-
-                        val resultSql = res2.result()
-
-                      //  println("LAST_INSERT_ID >>>"+resultSql)
-
-                        // Do something with results
-
-                        it.sendResponse(JsonObject(), "User saved")
-                    }else{
-                        it.sendError(res2.cause().message?:"Error service")
-                    }
-                })
-            } else {
-                // Failed to get connection - deal with it
-                it.sendError(res.cause().message?:"Error service")
-            }
+        userService.createAsync(user,{userSavedJson->
+            it.sendResponse(userSavedJson, "User saved")
+        },{error->
+            it.sendError(error.message?:"Error service")
         })
-
-
-       val  result   = Json.encode(user)
-
-
-
 
     }
 
     private fun createJdbcConfig(): JsonObject {
+
         val config = JsonObject()
         config.put("service.type", "jdbc")
         config.put("url", "jdbc:mysql://localhost:8889/canteen_management_db_v1 ?characterEncoding=UTF-8&useSSL=false&zeroDateTimeBehavior=convertToNull")
@@ -146,7 +133,7 @@ class MainVerticle: AbstractVerticle() {
     }
 
 
-    fun RoutingContext.sendError(message:String){
+    private fun RoutingContext.sendError(message:String){
         val result = JsonObject()
         result.put("success", false)
         result.put("message", message)
@@ -154,11 +141,14 @@ class MainVerticle: AbstractVerticle() {
     }
 
 
-    fun RoutingContext.sendResponse(data:Any,message:String){
+    private fun RoutingContext.sendResponse(data:Any,message:String){
         val result = JsonObject()
         result.put("success", true)
         result.put("message", message)
         result.put("data", Json.encode(data))
         this.response().setStatusCode(200).putHeader("Content-Type", "application/json; charset=utf-8").end(result.encodePrettily())
     }
+
+
+    private fun String.isTextEmpty()  = isNullOrEmpty()
 }
